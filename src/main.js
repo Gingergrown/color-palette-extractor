@@ -1,60 +1,63 @@
+
 import './style.css'
-import heroImg from './assets/hero.png'
-import javascriptLogo from './assets/javascript.svg'
-import viteLogo from './assets/vite.svg'
-import { setupCounter } from './counter.js'
+import { getPalette } from 'colorthief'
 
 document.querySelector('#app').innerHTML = `
-<section id="center">
-  <div class="hero">
-    <img src="${heroImg}" class="base" width="170" height="179">
-    <img src="${javascriptLogo}" class="framework" alt="JavaScript logo"/>
-    <img src="${viteLogo}" class="vite" alt="Vite logo" />
-  </div>
-  <div>
-    <h1>Get started</h1>
-    <p>Edit <code>src/main.js</code> and save to test <code>HMR</code></p>
-  </div>
-  <button id="counter" type="button" class="counter"></button>
-</section>
+  <main class="app">
+    <header>
+      <h1>Color Palette Extractor</h1>
+      <p>Discover the dominant colors in your image.</p>
+    </header>
 
-<div class="ticks"></div>
+    <section class="upload-section">
+      <label for="image-input">Choose an image</label>
+      <input id="image-input" type="file" accept="image/*">
+    </section>
 
-<section id="next-steps">
-  <div id="docs">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#documentation-icon"></use></svg>
-    <h2>Documentation</h2>
-    <p>Your questions, answered</p>
-    <ul>
-      <li>
-        <a href="https://vite.dev/" target="_blank">
-          <img class="logo" src="${viteLogo}" alt="" />
-          Explore Vite
-        </a>
-      </li>
-      <li>
-        <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript" target="_blank">
-          <img class="button-icon" src="${javascriptLogo}" alt="">
-          Learn more
-        </a>
-      </li>
-    </ul>
-  </div>
-  <div id="social">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#social-icon"></use></svg>
-    <h2>Connect with us</h2>
-    <p>Join the Vite community</p>
-    <ul>
-      <li><a href="https://github.com/vitejs/vite" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#github-icon"></use></svg>GitHub</a></li>
-      <li><a href="https://chat.vite.dev/" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#discord-icon"></use></svg>Discord</a></li>
-      <li><a href="https://x.com/vite_js" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#x-icon"></use></svg>X.com</a></li>
-      <li><a href="https://bsky.app/profile/vite.dev" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#bluesky-icon"></use></svg>Bluesky</a></li>
-    </ul>
-  </div>
-</section>
+    <section id="preview-section" hidden>
+      <h2>Selected Image</h2>
+      <img id="preview-image" alt="Selected image preview">
 
-<div class="ticks"></div>
-<section id="spacer"></section>
+      <h2>Color Palette</h2>
+      <div id="palette"></div>
+    </section>
+  </main>
 `
 
-setupCounter(document.querySelector('#counter'))
+const imageInput = document.querySelector('#image-input')
+const previewSection = document.querySelector('#preview-section')
+const previewImage = document.querySelector('#preview-image')
+const paletteContainer = document.querySelector('#palette')
+
+imageInput.addEventListener('change', async () => {
+  const file = imageInput.files[0]
+  if (!file) return
+
+  previewImage.src = URL.createObjectURL(file)
+  previewSection.hidden = false
+  paletteContainer.textContent = 'Extracting colors...'
+
+  try {
+    await previewImage.decode()
+
+    const colors = await getPalette(previewImage, {
+      colorCount: 6
+    })
+
+    paletteContainer.innerHTML = colors.map(color => {
+      const hex = color.hex()
+
+      return `
+        <div class="color-item">
+          <div class="color-swatch"
+               style="background-color: ${hex}"></div>
+          <p>${hex}</p>
+        </div>
+      `
+    }).join('')
+  } catch (error) {
+    console.error(error)
+    paletteContainer.textContent =
+      'Failed to extract colors. Check the browser console.'
+  }
+})
